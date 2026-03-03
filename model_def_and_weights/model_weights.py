@@ -47,7 +47,6 @@ def construct_problem_data_cvxpy(n, fc_weights, rl_weights, rl_biases, pmin, pma
     # stack them together
     C = cp.hstack([Ds, cp.vstack(Es)])
     
-    #TODO: check this is right
     # add z constraints
     B, x_zeros = -np.eye(C.shape[1] - n), np.zeros((C.shape[1]-n,n))
     # this deals with constraint 7c / third to last row of C in Appendix A
@@ -101,7 +100,6 @@ def construct_problem_data_fixed(model, device):
     # stack them together
     C = np.hstack([Ds, np.vstack(Es)])
     
-    #TODO: check that this is right
     # add z constraints
     B, x_zeros = -np.eye(C.shape[1] - n), np.zeros((C.shape[1]-n,n))
     # this deals with constraint 7c / third to last row of C in Appendix A

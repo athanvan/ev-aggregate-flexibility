@@ -1,12 +1,12 @@
 import numpy as np
 import torch 
 from sklearn.model_selection import train_test_split
-
+import wandb
 from model_def_and_weights.taha_models import general_affine_inner_approx, struct_preserve_inner_approx
 from training_methods.train_loop import train_icnn
 from data_generation.create_flexibility_sets import calculate_indiv_sets, find_chebyshev_center
-from data_generation.create_load_data import load_household_15min, build_load_profiles, f_reshape
-
+from data_generation.create_load_data import load_household_15min, build_load_profiles, f_reshape, blkdiag_repeat, f_vec
+wandb.login()
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 T = 18
@@ -31,6 +31,8 @@ for seed in range(10):
         cheb_centers.append(problem.var_dict["center"].value) 
 
     summed_center = sum(cheb_centers) 
+    H_block = blkdiag_repeat(H, N)
+    h_full = f_vec(h_i)
     
     # initialize to eq. 27 from Taha et al 2024
     hx = np.sum(h_i, axis=1) / N  
@@ -60,7 +62,6 @@ for seed in range(10):
     end = len(base_loads_flat) - (24 - offset)
     base_loads_crop = f_reshape(base_loads_flat[start:end], (24, -1))
     base_loads = base_loads_crop[:T, :] 
-    print("made base loads")
 
     load_train, load_other = train_test_split(base_loads.T, test_size=0.4, random_state=42)
     load_val, load_test = train_test_split(load_other, test_size=0.5, random_state=42)
@@ -74,17 +75,20 @@ for seed in range(10):
     info = {"load_train": augmented_loads, "load_val": load_val, 
             "translation": torch.as_tensor(summed_center).float().numpy(), 
              "train_batch_size": augmented_loads.shape[1], "val_batch_size": load_val.shape[1]}
-    epochs = 50
+    epochs = 500
     
-    params = {'lr': 1e-3,                  # learning rate
+    params = {'lr': 1e-2,                  # learning rate
         'epochs': epochs,                  # number of epochs to train the model 
         'hidden_width': T * 4,                # width of the hidden layers
         'hidden_depth': 1,                 # depth of the hidden layers
         'solver': "CUOPT", 
-        'verbose': False, 
+        'verbose': True, 
         'H_init': H_taha, 
         'h_init': h_taha,
-        'seed': seed
+        'seed': seed, 
+        'run_name': f"run_{seed}",
+        'H_block': H_block,
+        'h_full': h_full
         }
     
     model, train_loss, val_loss, ratio = train_icnn(H_i, h_i_translated, 

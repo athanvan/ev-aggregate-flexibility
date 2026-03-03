@@ -36,10 +36,13 @@ load_train, load_other = train_test_split(base_loads.T, test_size=0.4, random_st
 load_val, load_test = train_test_split(load_other, test_size=0.5, random_state=42)
 load_train, load_val, load_test = load_train.T, load_val.T, load_test.T
 
-# generate taha models
 ml_minus_opt = [] 
 ga_minus_opt = []
 sp_minus_opt = []
+ml_mean = []
+ga_mean = []
+sp_mean = []
+
 for seed in range(10):
     a = np.ones(N)
     d = T * np.ones(N)
@@ -67,16 +70,30 @@ for seed in range(10):
     h_full = f_vec(h_i)
     
     icnn_model = ICNN(T, T*4, 1, 1, torch.as_tensor([-500] * T), torch.as_tensor([500] * T), H_ga, h_ga)
-    checkpoint = torch.load(f'checkpoints/ppm_model_checkpoint_{seed}.pth') 
+    checkpoint = torch.load(f'model_checkpoints/ppm_model_checkpoint_{seed}.pth') 
     icnn_model.load_state_dict(checkpoint['model_state_dict'])
     
+    curr_ml, curr_ga, curr_sp = 0, 0, 0
     for t in range(load_test.shape[1]):
         l = load_test[:, t]
         opt_l = optimal_ppm(T, N, l, H_block, h_full)
-        ml_minus_opt.append(icnn_ppm(T, N, l, summed_center, icnn_model) - opt_l)
-        ga_minus_opt.append(taha_model_ppm(T, l, H_ga, h_ga) - opt_l)
-        sp_minus_opt.append(taha_model_ppm(T, l, H_ga, h_ga) - opt_l)
-
+        
+        ml_result = icnn_ppm(T, N, l, summed_center, icnn_model)
+        curr_ml += ml_result - opt_l
+        ml_minus_opt.append(ml_result - opt_l)
+        
+        ga_result = taha_model_ppm(T, l, H_ga, h_ga)
+        curr_ga += ga_result - opt_l
+        ga_minus_opt.append(ga_result - opt_l)
+        
+        sp_result = taha_model_ppm(T, l, H_sp, h_sp)
+        curr_sp += sp_result - opt_l
+        sp_minus_opt.append(sp_result - opt_l)
+    
+    ml_mean.append(curr_ml/load_test.shape[1])
+    ga_mean.append(curr_ga/load_test.shape[1])
+    sp_mean.append(curr_sp/load_test.shape[1])
+    
 # make boxplot
 gaps = np.zeros((load_test.shape[1] * 10, 3))
 gaps[:, 0] = np.array(ml_minus_opt)
@@ -88,9 +105,13 @@ plt.ylabel("Peak power gap (kW)")
 plt.xticks([1, 2, 3], ["ICNN", "struc.-pres.", "gen. affine"])
 plt.title("Optimality Gap on Peak Power Minimization")
 plt.savefig("boxplot_result.png")
-        
-    
-    
+
+print(f"Mean ICNN Gap: {np.mean(ml_mean)}")
+print(f"ICNN Standard Error: {np.std(ml_mean)/(9 ** 0.5)}")
+print(f"Mean General Affine Gap: {np.mean(ga_mean)}")
+print(f"General Affine Standard Error: {np.std(ga_mean)/(9 ** 0.5)}")
+print(f"Mean Structure Preserving Gap: {np.mean(sp_mean)}")
+print(f"Structure Preserving Standard Error: {np.std(sp_mean)/(9 ** 0.5)}")
     
     
  

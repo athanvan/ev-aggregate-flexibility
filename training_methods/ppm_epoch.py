@@ -34,7 +34,6 @@ class PPM_Epoch():
         self.best_val_loss = None
         self.N, self.T = N, T 
 
-    #TODO: get rid of seed, find another way to do this
     def ppm_epoch(self, seed):
         """
         - Runs an epoch of training with the peak power minimization loss function
@@ -48,9 +47,7 @@ class PPM_Epoch():
             assert status == "optimal"
             self.model.pgd(ratio)
             return_vals["ratio"] = ratio
-        print("scaled")
         load_val = torch.as_tensor(self.load_val).to(self.device).float()
-        print("val loss")
         ppm_val_loss = self.ppm_loss.ppm_evaluate(load_val, layer = False)
         return_vals["ppm_val_loss"] = ppm_val_loss
         
@@ -58,20 +55,19 @@ class PPM_Epoch():
         if self.best_val_loss is None or ppm_val_loss < self.best_val_loss:
             self.best_val_loss = ppm_val_loss
             torch.save({'model_state_dict': self.model.state_dict()}, 
-                        f'checkpoints/ppm_model_checkpoint_{seed}.pth')
+                        f'model_checkpoints/ppm_model_checkpoint_{seed}.pth')
                 
         self.optimizer.zero_grad()
         load_train = torch.as_tensor(self.load_train).to(self.device).float()
         translation = torch.tensor(self.translation).to(self.device)  
         sol = self.ppm_loss.ppm_evaluate(load_train, layer = True)
-        print("train loss")
         # recompute task loss with the solution from cvxpylayer 
         ppm_training_loss = 0
         for idx in range(load_train.shape[1]):
             ppm_training_loss += torch.linalg.norm(sol[0][:, idx] + translation + load_train[:, idx], ord = float("inf"))
         ppm_training_loss /= self.load_train.shape[1]
-            
-        ppm_training_loss.backward()            
+        
+        ppm_training_loss.backward()  
         self.optimizer.step()
         # to preserve convexity
         self.model.clamp_weights()
