@@ -2,7 +2,7 @@ import numpy as np
 import torch 
 from sklearn.model_selection import train_test_split
 import wandb
-from model_def_and_weights.taha_models import general_affine_inner_approx, struct_preserve_inner_approx
+from model_def_and_weights.taha_models import general_affine_inner_approx
 from training_methods.train_loop import train_icnn
 from data_generation.create_flexibility_sets import calculate_indiv_sets, find_chebyshev_center
 from data_generation.create_load_data import load_household_15min, build_load_profiles, f_reshape, blkdiag_repeat, f_vec
@@ -23,8 +23,8 @@ for seed in range(10):
     d = T * np.ones(N)
     L = delta * np.tril(np.ones((T, T)))
     H = np.vstack([L, -L, np.eye(T), -np.eye(T)])
-
     h_i = calculate_indiv_sets(a, d, N, T, seed)  
+    
     cheb_centers = []
     for i in range(N):
         problem = find_chebyshev_center(H, h_i[:, i])

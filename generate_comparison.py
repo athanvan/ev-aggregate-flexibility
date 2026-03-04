@@ -10,8 +10,8 @@ from data_generation.create_load_data import load_household_15min, build_load_pr
 from comparison_methods.comparison import taha_model_ppm, icnn_ppm, optimal_ppm
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+torch.manual_seed(42)
 
-# load data
 T = 18
 N = 25
 delta = 1
@@ -48,8 +48,8 @@ for seed in range(10):
     d = T * np.ones(N)
     L = delta * np.tril(np.ones((T, T)))
     H = np.vstack([L, -L, np.eye(T), -np.eye(T)])
-
     h_i = calculate_indiv_sets(a, d, N, T, seed)  
+    
     cheb_centers = []
     for i in range(N):
         problem = find_chebyshev_center(H, h_i[:, i])

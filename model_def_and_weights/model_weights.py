@@ -114,8 +114,9 @@ def construct_problem_data_fixed(model, device):
     
     # make d vec
     d = -np.hstack(rl_biases)
-    d = np.hstack([d, pmax, -pmin])
     d = np.hstack([d, np.zeros((C.shape[1] - n))])
+    d = np.hstack([d, pmax, -pmin])
+
     return C, d
 
 def create_A_matrix(timesteps, col_C):

@@ -22,7 +22,6 @@ class CVXPY_Containment_Problem:
       self.layer = self.build_cvxpylayer_icnn()
       self.keywords = dict(verbose = True)
       
-      # TODO: should I leave it like this or change it to 1e-6?
       self.cuopt_keywords = dict(
           absolute_primal_tolerance = 1e-4,
           relative_primal_tolerance = 1e-4,
@@ -50,10 +49,7 @@ class CVXPY_Containment_Problem:
           rl_bias_params.append(cp.Parameter(rl_biases[i].shape))
 
       C, d = construct_problem_data_cvxpy(self.model.input_dim, fc_weight_params, rl_weight_params, rl_bias_params, pmin_param, pmax_param)
-      print(C.shape)
-      print(d.shape)
       A = cp.Constant(create_A_matrix(self.T, C.shape[1]))
-      print(A.shape)
       
       lambda_list = []
       beta_list = []

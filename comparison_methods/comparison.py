@@ -17,10 +17,10 @@ def taha_model_ppm(T, l, H, h):
         
     return prob.value
 
-def optimal_ppm(T, N, l, H_block, h_full):
+def optimal_ppm(T, N, l, H_block, h_full, return_u = False):
     # compute optimal value for peak power minimization
     zi = cp.Variable((T, N))
-    u = cp.Variable(T)
+    u = cp.Variable(T, name = "u")
     
     constraints = [cp.sum(zi, axis=1) == u]
     constraints += [H_block @ cp.vec(zi) <= h_full]
@@ -31,6 +31,9 @@ def optimal_ppm(T, N, l, H_block, h_full):
     
     if prob.status not in ("optimal", "optimal_inaccurate"):
         print("optimal status:", prob.status)
+    
+    if return_u:
+        return prob.var_dict["u"].value
         
     return prob.value
 
